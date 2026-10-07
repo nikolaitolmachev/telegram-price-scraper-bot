@@ -4,13 +4,14 @@ from tempfile import NamedTemporaryFile
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 
 from app.bot.keyboards import upload_keyboard
 from app.bot.states import UploadExcel
-from app.services.excel import load_products
 from app.scraping.client import PriceScraper
+from app.scraping.models import ScrapeStatus
 from app.services.pricing import build_price_summaries
+from app.services.excel import load_products
 
 
 router = Router()
@@ -58,7 +59,13 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
 
         products = load_products(temp_path)
 
-        await message.answer(f"File accepted. Loaded {len(products)} product rows.\nCollecting prices...")
+        await state.set_state(UploadExcel.processing)
+
+        await message.answer(
+            f"File accepted. Loaded {len(products)} product rows.\n\n"
+            "Collecting prices...",
+            reply_markup=ReplyKeyboardRemove(),
+        )
 
         results = []
 
@@ -69,14 +76,35 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
 
         summaries = build_price_summaries(results)
 
+        successful = sum(
+            1
+            for _, result in results
+            if result.status is ScrapeStatus.SUCCESS
+        )
+
+        failed = len(results) - successful
+
+        await message.answer(
+            f"Price collection finished.\n"
+            f"Successful: {successful}/{len(results)}\n"
+            f"Failed: {failed}",
+            reply_markup=upload_keyboard,
+        )
+
+        summary_lines = []
+
         for summary in summaries:
-            await message.answer(
-                f"{summary.title}\n\n"
+            summary_lines.append(
+                f"{summary.title}\n"
                 f"Sources: {summary.sources_count}\n"
                 f"Average: {summary.average_price:.2f} RUB\n"
                 f"Min: {summary.min_price:.2f} RUB\n"
                 f"Max: {summary.max_price:.2f} RUB"
             )
+
+        await message.answer(
+            "\n\n".join(summary_lines)
+        )
 
         await state.clear()
 
@@ -85,6 +113,11 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
 
     finally:
         temp_path.unlink(missing_ok=True)
+
+
+@router.message(UploadExcel.processing)
+async def processing_handler(message: Message) -> None:
+    await message.answer("Price collection is already in progress. Please wait until it finishes.")
 
 
 @router.message(UploadExcel.waiting_for_file)
