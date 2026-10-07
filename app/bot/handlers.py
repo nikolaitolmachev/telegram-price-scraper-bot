@@ -67,12 +67,8 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
             reply_markup=ReplyKeyboardRemove(),
         )
 
-        results = []
-
         async with PriceScraper(headless=True) as scraper:
-            for product in products:
-                result = await scraper.scrape(product)
-                results.append((product, result))
+            results = await scraper.scrape_many(products)
 
         summaries = build_price_summaries(results)
 

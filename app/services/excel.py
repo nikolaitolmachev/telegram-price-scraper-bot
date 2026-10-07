@@ -7,7 +7,7 @@ from app.models import ProductInput
 
 REQUIRED_COLUMNS = {"title", "url", "selector"}
 
-MAX_PRODUCTS = 100
+MAX_PRODUCTS = 400
 
 
 def load_products(path: str | Path) -> list[ProductInput]:
