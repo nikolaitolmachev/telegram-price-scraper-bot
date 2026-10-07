@@ -1,0 +1,19 @@
+[project]
+name = "telegram-price-scraper-bot"
+version = "0.1.0"
+description = "Telegram bot for comparing product prices across multiple online stores."
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.13,<5",
+    "openpyxl>=3.1,<4",
+    "pandas>=3.0,<4",
+    "playwright>=1.55,<2",
+    "python-dotenv>=1.0,<2",
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

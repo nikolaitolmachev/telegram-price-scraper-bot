@@ -1,4 +1,26 @@
-.idea/
+# Virtual environment
+.venv/
+
+# Python
 __pycache__/
-venv/
-*.docx
+*.py[cod]
+.pytest_cache/
+
+# Environment variables
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Runtime data
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python packaging
+*.egg-info/
+build/
+dist/
