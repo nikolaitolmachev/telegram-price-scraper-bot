@@ -7,6 +7,8 @@ from app.models import ProductInput
 
 REQUIRED_COLUMNS = {"title", "url", "selector"}
 
+MAX_PRODUCTS = 100
+
 
 def load_products(path: str | Path) -> list[ProductInput]:
     df = pd.read_excel(path)
@@ -38,5 +40,11 @@ def load_products(path: str | Path) -> list[ProductInput]:
                 selector=selector,
             )
         )
+
+    if not products:
+        raise ValueError("The file does not contain any valid product rows.")
+
+    if len(products) > MAX_PRODUCTS:
+        raise ValueError(f"Too many product rows: {len(products)}. Maximum allowed is {MAX_PRODUCTS}.")
 
     return products
