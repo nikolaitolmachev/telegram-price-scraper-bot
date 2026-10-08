@@ -18,3 +18,12 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+    "pytest-asyncio>=1.0,<2",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
