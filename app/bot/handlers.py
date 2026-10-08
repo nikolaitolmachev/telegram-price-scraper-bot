@@ -1,8 +1,9 @@
+import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from aiogram import F, Router
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove
 
@@ -12,13 +13,22 @@ from app.scraping.client import PriceScraper
 from app.scraping.models import ScrapeStatus
 from app.services.pricing import build_price_summaries
 from app.services.excel import load_products
+from app.database.service import create_run, complete_run, fail_run
 
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
 
 @router.message(Command("start"))
 async def start_handler(message: Message, state: FSMContext) -> None:
+    current_state = await state.get_state()
+
+    if current_state == UploadExcel.processing.state:
+        await message.answer("Price collection is already in progress.\n\nPlease wait until it finishes.")
+        return
+
     await state.clear()
 
     await message.answer(
@@ -27,7 +37,7 @@ async def start_handler(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.message(F.text == "Upload Excel")
+@router.message(StateFilter(None, UploadExcel.waiting_for_file), F.text == "Upload Excel")
 async def upload_request_handler(message: Message, state: FSMContext) -> None:
     await state.set_state(UploadExcel.waiting_for_file)
 
@@ -52,23 +62,43 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
         temp_path = Path(temp_file.name)
 
     try:
-        await message.bot.download_file(
-            file.file_path,
-            destination=temp_path,
-        )
+        await message.bot.download_file(file.file_path, destination=temp_path)
 
-        products = load_products(temp_path)
+        try:
+            products = load_products(temp_path)
+        except ValueError as exc:
+            await message.answer(f"Invalid Excel file: {exc}")
+            return
+
+        telegram_user = message.from_user
+
+        if telegram_user is None:
+            raise RuntimeError("Telegram user information is unavailable.")
 
         await state.set_state(UploadExcel.processing)
 
         await message.answer(
-            f"File accepted. Loaded {len(products)} product rows.\n\n"
-            "Collecting prices...",
+            f"File accepted. Loaded {len(products)} product rows.\n\nCollecting prices...",
             reply_markup=ReplyKeyboardRemove(),
         )
 
-        async with PriceScraper(headless=True) as scraper:
-            results = await scraper.scrape_many(products)
+        run_id = await create_run(telegram_user.id)
+
+        try:
+            async with PriceScraper(headless=True) as scraper:
+                results = await scraper.scrape_many(products)
+
+            await complete_run(run_id, results)
+
+        except Exception:
+            try:
+                await fail_run(run_id)
+            except Exception:  # noqa
+                logger.exception(
+                    "Failed to mark scrape run %s as failed",
+                    run_id,
+                )
+            raise
 
         summaries = build_price_summaries(results)
 
@@ -98,17 +128,26 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
                 f"Max: {summary.max_price:.2f} RUB"
             )
 
-        await message.answer(
-            "\n\n".join(summary_lines)
-        )
+        if summary_lines:
+            await message.answer("\n\n".join(summary_lines))
+        else:
+            await message.answer("No prices could be collected from the provided URLs.")
 
         await state.clear()
 
-    except ValueError as exc:
-        await message.answer(f"Invalid Excel file: {exc}")
+    except Exception:  # noqa
+        logger.exception("Excel processing failed")
+        await message.answer(
+            "An unexpected error occurred while processing your file.\n\nPlease try again.",
+            reply_markup=upload_keyboard,
+        )
 
     finally:
         temp_path.unlink(missing_ok=True)
+
+        current_state = await state.get_state()
+        if current_state == UploadExcel.processing.state:
+            await state.clear()
 
 
 @router.message(UploadExcel.processing)

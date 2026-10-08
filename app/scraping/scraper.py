@@ -3,10 +3,7 @@ from decimal import Decimal
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
 from app.models import ProductInput
-from app.scraping.extractors import (
-    extract_json_ld_price,
-    extract_microdata_price,
-)
+from app.scraping.extractors import extract_json_ld_price, extract_microdata_price
 from app.scraping.models import PriceResult, PriceSource, ScrapeStatus
 from app.scraping.parser import parse_price
 

@@ -1,0 +1,26 @@
+import sqlite3
+from contextlib import closing
+from pathlib import Path
+
+from app.database.models import SCHEMA
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "prices.db"
+
+
+def get_connection(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+
+    return connection
+
+
+def init_database(db_path: str | Path = DEFAULT_DB_PATH) -> None:
+    with closing(get_connection(db_path)) as connection:
+        with connection:
+            connection.executescript(SCHEMA)

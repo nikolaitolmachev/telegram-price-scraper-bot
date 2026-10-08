@@ -130,18 +130,12 @@ async def test_selector_failure_returns_not_found() -> None:
         ("xpath=//span", "xpath=//span"),
     ],
 )
-def test_normalize_selector(
-    selector: str,
-    expected: str,
-) -> None:
+def test_normalize_selector(selector: str, expected: str) -> None:
     assert _normalize_selector(selector) == expected
 
 
 @pytest.mark.parametrize("status", [401, 403, 429, 503])
-async def test_blocked_http_status(
-    product: ProductInput,
-    status: int,
-) -> None:
+async def test_blocked_http_status(product: ProductInput, status: int) -> None:
     page = make_page(status=status)
 
     result = await scrape_product(page, product)

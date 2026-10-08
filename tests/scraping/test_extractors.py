@@ -2,10 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.scraping.extractors import (
-    extract_json_ld_price,
-    extract_microdata_price,
-)
+from app.scraping.extractors import extract_json_ld_price, extract_microdata_price
 
 
 @pytest.mark.parametrize(
