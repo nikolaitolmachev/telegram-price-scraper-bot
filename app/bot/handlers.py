@@ -1,3 +1,5 @@
+"""Telegram message handlers for the Excel upload and price comparison flow."""
+
 import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -23,6 +25,11 @@ router = Router()
 
 @router.message(Command("start"))
 async def start_handler(message: Message, state: FSMContext) -> None:
+    """Handle the /start command and reset the conversation state.
+
+    If a price collection run is already in progress, the user is asked to
+    wait and the current state is left untouched.
+    """
     current_state = await state.get_state()
 
     if current_state == UploadExcel.processing.state:
@@ -39,6 +46,7 @@ async def start_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(StateFilter(None, UploadExcel.waiting_for_file), F.text == "Upload Excel")
 async def upload_request_handler(message: Message, state: FSMContext) -> None:
+    """Switch to the waiting state and prompt the user for an Excel file."""
     await state.set_state(UploadExcel.waiting_for_file)
 
     await message.answer("Send an .xlsx file with the columns: title, url, selector.")
@@ -46,6 +54,11 @@ async def upload_request_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(UploadExcel.waiting_for_file, F.document)
 async def excel_upload_handler(message: Message, state: FSMContext) -> None:
+    """Process an uploaded Excel file and report collected prices.
+
+    Validate the workbook, scrape product prices, and persist the results.
+    Handle processing errors and restore the Telegram workflow state.
+    """
     document = message.document
 
     if document is None or not document.file_name:
@@ -152,9 +165,11 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(UploadExcel.processing)
 async def processing_handler(message: Message) -> None:
+    """Notify the user that a price collection run is already in progress."""
     await message.answer("Price collection is already in progress. Please wait until it finishes.")
 
 
 @router.message(UploadExcel.waiting_for_file)
 async def invalid_upload_handler(message: Message) -> None:
+    """Ask the user for an .xlsx file when the message is not a document."""
     await message.answer("Please send an .xlsx file.")

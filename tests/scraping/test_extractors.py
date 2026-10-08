@@ -1,3 +1,5 @@
+"""Test JSON-LD and Microdata price extraction from HTML."""
+
 from decimal import Decimal
 
 import pytest

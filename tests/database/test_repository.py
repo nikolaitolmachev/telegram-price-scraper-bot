@@ -1,3 +1,5 @@
+"""Test SQLite persistence, transactions and per-user isolation."""
+
 import sqlite3
 from decimal import Decimal
 

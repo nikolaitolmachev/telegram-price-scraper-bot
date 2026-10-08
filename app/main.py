@@ -1,3 +1,5 @@
+"""Bot entry point: build the dispatcher and start long polling."""
+
 import asyncio
 
 from aiogram import Bot, Dispatcher
@@ -7,6 +9,7 @@ from app.config import BOT_TOKEN
 
 
 async def main() -> None:
+    """Create the dispatcher, register handlers and start long polling."""
     bot = Bot(token=BOT_TOKEN)
     dispatcher = Dispatcher()
 

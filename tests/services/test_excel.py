@@ -1,3 +1,5 @@
+"""Test Excel loading, column validation and product row limits."""
+
 import pandas as pd
 
 import pytest

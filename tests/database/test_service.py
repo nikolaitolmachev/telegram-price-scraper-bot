@@ -1,3 +1,5 @@
+"""Test threaded run creation, completion rollback and failure handling."""
+
 from decimal import Decimal
 from unittest.mock import patch
 

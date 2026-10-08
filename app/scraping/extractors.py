@@ -1,3 +1,5 @@
+"""Price extraction from embedded JSON-LD and Microdata markup."""
+
 import json
 from decimal import Decimal
 from typing import Any
@@ -10,6 +12,15 @@ from app.scraping.parser import parse_price
 def extract_microdata_price(
     html: str,
 ) -> tuple[Decimal | None, str | None]:
+    """Extract a price and currency from Microdata markup.
+
+    Reads the first price item, preferring its content attribute over its
+    text, and pairs it with the first currency item.
+
+    Returns:
+        A (price, currency) pair, or (None, None) when no valid price is
+        present. The currency may be None on its own.
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     price_element = soup.select_one('[itemprop="price"]')
@@ -43,6 +54,15 @@ def extract_microdata_price(
 def extract_json_ld_price(
     html: str,
 ) -> tuple[Decimal | None, str | None]:
+    """Extract a price and currency from JSON-LD Product markup.
+
+    Each application/ld+json script is inspected in document order;
+    malformed scripts are skipped and the first price found is returned.
+
+    Returns:
+        A (price, currency) pair, or (None, None) when no product price is
+        present.
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     for script in soup.find_all("script", type="application/ld+json"):
@@ -64,6 +84,14 @@ def extract_json_ld_price(
 def _find_product_price(
     data: Any,
 ) -> tuple[Decimal, str | None] | None:
+    """Search parsed JSON-LD data for the first Product price.
+
+    Traverses lists and nested dictionaries, recognizing a Product node by
+    its @type.
+
+    Returns:
+        A (price, currency) pair, or None when no product price is found.
+    """
     if isinstance(data, list):
         for item in data:
             result = _find_product_price(item)
@@ -103,6 +131,14 @@ def _find_product_price(
 def _extract_offer_price(
     offers: Any,
 ) -> tuple[Decimal, str | None] | None:
+    """Read a price and currency from an offers value.
+
+    Accepts a single offer or a list of offers, using price and falling
+    back to lowPrice for aggregate offers.
+
+    Returns:
+        A (price, currency) pair, or None when no valid price is found.
+    """
     if isinstance(offers, list):
         for offer in offers:
             result = _extract_offer_price(offer)

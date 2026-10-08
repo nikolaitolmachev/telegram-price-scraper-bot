@@ -1,3 +1,10 @@
+"""SQLite data access for scrape runs and their price results.
+
+Every function operates on a caller-provided connection. Only
+create_scrape_run commits on its own; the remaining writers leave
+transaction control to the caller.
+"""
+
 import sqlite3
 from collections.abc import Sequence
 
@@ -9,6 +16,14 @@ SCRAPE_STATUSES = {"completed", "failed"}
 
 
 def create_scrape_run(connection: sqlite3.Connection, telegram_user_id: int) -> int:
+    """Insert a new scrape run in the running status and commit it.
+
+    Returns:
+        The id of the created run.
+
+    Raises:
+        RuntimeError: If the generated row id is unavailable.
+    """
     cursor = connection.execute(
         """
         INSERT INTO scrape_runs (telegram_user_id)
@@ -29,6 +44,10 @@ def save_price_results(
     run_id: int,
     results: Sequence[tuple[ProductInput, PriceResult]],
 ) -> None:
+    """Insert one row per scrape result for the given run.
+
+    The transaction is left open for the caller to commit.
+    """
     rows = [
         (
             run_id,
@@ -67,6 +86,13 @@ def finish_scrape_run(
     *,
     status: str = "completed",
 ) -> None:
+    """Set a run's final status and completion timestamp.
+
+    The transaction is left open for the caller to commit.
+
+    Raises:
+        ValueError: If the status is not completed or failed.
+    """
     if status not in SCRAPE_STATUSES:
         raise ValueError("Invalid scrape run status.")
 
@@ -87,6 +113,11 @@ def get_user_runs(
     *,
     limit: int = 10,
 ) -> list[sqlite3.Row]:
+    """Return a user's most recent runs, newest first.
+
+    Returns:
+        Up to limit rows containing the id, timestamps and status.
+    """
     cursor = connection.execute(
         """
         SELECT id, started_at, finished_at, status
@@ -106,6 +137,13 @@ def get_run_results(
     run_id: int,
     telegram_user_id: int,
 ) -> list[sqlite3.Row]:
+    """Return the price results of a run owned by the given user.
+
+    A run owned by another user yields no rows.
+
+    Returns:
+        The run's price result rows in insertion order.
+    """
     cursor = connection.execute(
         """
         SELECT

@@ -1,8 +1,19 @@
+"""Normalization of human-readable price strings into decimals."""
+
 import re
 from decimal import Decimal, InvalidOperation
 
 
 def parse_price(value: str) -> Decimal | None:
+    """Parse a human-readable price string into a Decimal.
+
+    Currency symbols and whitespace are stripped, and common decimal and
+    thousands separators are normalized.
+
+    Returns:
+        The parsed price, or None when the input is empty, invalid or not
+        greater than zero.
+    """
     if not value:
         return None
 

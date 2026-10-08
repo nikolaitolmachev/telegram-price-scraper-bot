@@ -1,3 +1,5 @@
+"""Reply keyboards used by the upload workflow."""
+
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 

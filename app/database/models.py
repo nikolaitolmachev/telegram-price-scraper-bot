@@ -1,3 +1,5 @@
+"""SQLite schema for scrape runs and their price results."""
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS scrape_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

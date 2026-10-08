@@ -1,3 +1,5 @@
+"""SQLite connection setup and schema initialization."""
+
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -10,6 +12,13 @@ DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "prices.db"
 
 
 def get_connection(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
+    """Open a SQLite connection with named rows and foreign keys enabled.
+
+    The parent directory of the database file is created when missing.
+
+    Returns:
+        An open connection supporting row access by column name.
+    """
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -21,6 +30,7 @@ def get_connection(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
 
 
 def init_database(db_path: str | Path = DEFAULT_DB_PATH) -> None:
+    """Initialize the SQLite schema if it does not already exist."""
     with closing(get_connection(db_path)) as connection:
         with connection:
             connection.executescript(SCHEMA)

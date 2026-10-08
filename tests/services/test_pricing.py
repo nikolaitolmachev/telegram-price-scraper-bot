@@ -1,3 +1,5 @@
+"""Test per-product price aggregation."""
+
 from decimal import Decimal
 
 from app.models import ProductInput

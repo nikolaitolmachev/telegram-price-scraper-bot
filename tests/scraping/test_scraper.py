@@ -1,3 +1,5 @@
+"""Test page scraper navigation, source priority and selector fallback."""
+
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 

@@ -1,3 +1,8 @@
+"""Application configuration read from environment variables.
+
+Importing this module raises RuntimeError when BOT_TOKEN is not set.
+"""
+
 import os
 
 from dotenv import load_dotenv

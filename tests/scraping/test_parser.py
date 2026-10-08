@@ -1,3 +1,5 @@
+"""Test price parsing and normalization across supported formats."""
+
 from decimal import Decimal
 
 from app.scraping.parser import parse_price
