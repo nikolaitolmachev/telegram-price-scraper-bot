@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from decimal import Decimal
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -24,6 +25,11 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+
+def format_price(price: Decimal) -> str:
+    """Format a price with spaces between thousands and two decimal places."""
+    return f"{price:,.2f}".replace(",", " ")
 
 
 @router.message(Command("start"))
@@ -151,9 +157,9 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
             summary_lines.append(
                 f"{summary.title}\n"
                 f"Sources: {summary.sources_count}\n"
-                f"Average: {summary.average_price:.2f} у. е.\n"
-                f"Min: {summary.min_price:.2f} у. е.\n"
-                f"Max: {summary.max_price:.2f} у. е."
+                f"Average: {format_price(summary.average_price)} у. е.\n"
+                f"Min: {format_price(summary.min_price)} у. е.\n"
+                f"Max: {format_price(summary.max_price)} у. е."
             )
 
         if summary_lines:

@@ -171,11 +171,11 @@ async def test_successful_upload_saves_results_and_sends_summary(
     state: AsyncMock,
     services: MagicMock,
 ) -> None:
-    """Persist mixed scrape outcomes and summarize only successful prices."""
+    """Persist mixed outcomes and display grouped amounts for successful prices."""
     products = services.load_products.return_value
     results = [
-        (products[0], PriceResult(ScrapeStatus.SUCCESS, price=Decimal("100"))),
-        (products[1], PriceResult(ScrapeStatus.SUCCESS, price=Decimal("200"))),
+        (products[0], PriceResult(ScrapeStatus.SUCCESS, price=Decimal("24990"))),
+        (products[1], PriceResult(ScrapeStatus.SUCCESS, price=Decimal("32840"))),
         (products[2], PriceResult(ScrapeStatus.NOT_FOUND)),
     ]
     services.scraper.scrape_many.return_value = results
@@ -191,8 +191,8 @@ async def test_successful_upload_saves_results_and_sends_summary(
         reply_markup=upload_keyboard,
     )
     message.answer.assert_any_await(
-        "Test Product\nSources: 2\nAverage: 150.00 у. е.\n"
-        "Min: 100.00 у. е.\nMax: 200.00 у. е.",
+        "Test Product\nSources: 2\nAverage: 28 915.00 у. е.\n"
+        "Min: 24 990.00 у. е.\nMax: 32 840.00 у. е.",
     )
     state.set_state.assert_awaited_once_with(UploadExcel.processing)
     state.clear.assert_awaited_once()
