@@ -6,7 +6,6 @@ from pathlib import Path
 
 from app.database.models import SCHEMA
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "prices.db"
 

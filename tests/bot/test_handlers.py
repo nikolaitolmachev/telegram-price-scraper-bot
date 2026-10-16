@@ -191,8 +191,7 @@ async def test_successful_upload_saves_results_and_sends_summary(
         reply_markup=upload_keyboard,
     )
     message.answer.assert_any_await(
-        "Test Product\nSources: 2\nAverage: 28 915.00 у. е.\n"
-        "Min: 24 990.00 у. е.\nMax: 32 840.00 у. е.",
+        "Test Product\nSources: 2\nAverage: 28 915.00 у. е.\nMin: 24 990.00 у. е.\nMax: 32 840.00 у. е.",
     )
     state.set_state.assert_awaited_once_with(UploadExcel.processing)
     state.clear.assert_awaited_once()
@@ -207,10 +206,7 @@ async def test_upload_without_prices_saves_results_and_reports_no_prices(
     services: MagicMock,
 ) -> None:
     """Keep unsuccessful results and explain when no summary can be built."""
-    results = [
-        (product, PriceResult(ScrapeStatus.NOT_FOUND))
-        for product in services.load_products.return_value
-    ]
+    results = [(product, PriceResult(ScrapeStatus.NOT_FOUND)) for product in services.load_products.return_value]
     services.scraper.scrape_many.return_value = results
 
     await handlers.excel_upload_handler(message, state)

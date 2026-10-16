@@ -3,7 +3,6 @@
 import re
 from decimal import Decimal
 
-
 CURRENCY_PATTERN = r"(?:₽|\$|€|£|RUB|USD|EUR|GBP|BYN|руб\.?|р\.?)"
 NUMBER_PATTERN = (
     r"(?:"

@@ -11,7 +11,6 @@ from collections.abc import Sequence
 from app.models import ProductInput
 from app.scraping.models import PriceResult
 
-
 SCRAPE_STATUSES = {"completed", "failed"}
 
 

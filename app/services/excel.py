@@ -6,7 +6,6 @@ import pandas as pd
 
 from app.models import ProductInput
 
-
 REQUIRED_COLUMNS = {"title", "url", "selector"}
 
 MAX_PRODUCTS = 400

@@ -13,12 +13,11 @@ from aiogram.types import Message, ReplyKeyboardRemove
 
 from app.bot.keyboards import upload_keyboard
 from app.bot.states import UploadExcel
+from app.database.service import complete_run, create_run, fail_run
 from app.scraping.client import PriceScraper
 from app.scraping.models import ScrapeStatus
-from app.services.pricing import build_price_summaries
 from app.services.excel import load_products
-from app.database.service import create_run, complete_run, fail_run
-
+from app.services.pricing import build_price_summaries
 
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -95,6 +94,7 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
     with NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
         temp_path = Path(temp_file.name)
 
+    # noinspection PyBroadException
     try:
         file = await message.bot.get_file(document.file_id)
         await message.bot.download_file(file.file_path, destination=temp_path)
@@ -127,27 +127,22 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
             await complete_run(run_id, results)
 
         except Exception:
+            # noinspection PyBroadException
             try:
                 await fail_run(run_id)
-            except Exception:  # noqa
+            except Exception:
                 logger.exception("Failed to mark scrape run %s as failed", run_id)
             raise
 
         summaries = build_price_summaries(results)
 
-        successful = sum(
-            1
-            for _, result in results
-            if result.status is ScrapeStatus.SUCCESS
-        )
+        successful = sum(1 for _, result in results if result.status is ScrapeStatus.SUCCESS)
 
         failed = len(results) - successful
         logger.info("Run %s completed: %s successful, %s failed", run_id, successful, failed)
 
         await message.answer(
-            f"Price collection finished.\n"
-            f"Successful: {successful}/{len(results)}\n"
-            f"Failed: {failed}",
+            f"Price collection finished.\nSuccessful: {successful}/{len(results)}\nFailed: {failed}",
             reply_markup=upload_keyboard,
         )
 
@@ -169,7 +164,7 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
 
         await state.clear()
 
-    except Exception:  # noqa
+    except Exception:
         logger.exception("Excel processing failed")
         await message.answer(
             "An unexpected error occurred while processing your file.\n\nPlease try again.",

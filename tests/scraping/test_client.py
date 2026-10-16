@@ -93,10 +93,7 @@ async def test_scrape_many_preserves_order() -> None:
     """Return results in input order even when scrapes finish out of order."""
     scraper = PriceScraper()
 
-    products = [
-        ProductInput(title=f"Product {i}", url=f"https://example.com/{i}")
-        for i in range(3)
-    ]
+    products = [ProductInput(title=f"Product {i}", url=f"https://example.com/{i}") for i in range(3)]
 
     async def fake_scrape(product: ProductInput) -> PriceResult:
         """Delay the first product so it finishes after the others."""
@@ -125,10 +122,7 @@ async def test_scrape_many_respects_concurrency_limit() -> None:
     """Keep concurrent scrapes within MAX_CONCURRENCY."""
     scraper = PriceScraper()
 
-    products = [
-        ProductInput(title=f"Product {i}", url=f"https://example.com/{i}")
-        for i in range(MAX_CONCURRENCY + 3)
-    ]
+    products = [ProductInput(title=f"Product {i}", url=f"https://example.com/{i}") for i in range(MAX_CONCURRENCY + 3)]
 
     active = 0
     peak = 0

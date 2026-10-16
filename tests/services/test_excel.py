@@ -1,10 +1,9 @@
 """Test Excel loading, column validation and product row limits."""
 
 import pandas as pd
-
 import pytest
 
-from app.services.excel import load_products, MAX_PRODUCTS
+from app.services.excel import MAX_PRODUCTS, load_products
 
 
 def test_load_products_from_valid_excel(tmp_path) -> None:

@@ -8,8 +8,10 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from app.models import ProductInput
 from app.scraping.models import PriceSource, ScrapeStatus
+
+# noinspection PyProtectedMember
 from app.scraping.scraper import (
-    _normalize_selector,        # noqa
+    _normalize_selector,
     extract_price_from_page,
     scrape_product,
 )
@@ -110,9 +112,7 @@ async def test_selector_not_used_when_json_ld_exists() -> None:
 
 async def test_price_not_found() -> None:
     """Return NOT_FOUND when the page contains no usable price."""
-    result = await extract_price_from_page(
-        make_page("<html></html>")
-    )
+    result = await extract_price_from_page(make_page("<html></html>"))
 
     assert result.status is ScrapeStatus.NOT_FOUND
     assert result.price is None

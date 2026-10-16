@@ -2,7 +2,8 @@
 
 from decimal import Decimal
 
-from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from app.models import ProductInput
 from app.scraping.extractors import extract_json_ld_price, extract_microdata_price
@@ -122,9 +123,10 @@ async def _extract_price_by_selector(page: Page, selector: str) -> Decimal | Non
 
     locator = page.locator(normalized_selector).first
 
+    # noinspection PyBroadException
     try:
         text = await locator.inner_text()
-    except Exception:  # noqa
+    except Exception:
         return None
 
     return parse_price(text)

@@ -43,11 +43,7 @@ def extract_microdata_price(
 
     currency = None
     if currency_element is not None:
-        currency = (
-            currency_element.get("content")
-            or currency_element.get_text(strip=True)
-            or None
-        )
+        currency = currency_element.get("content") or currency_element.get_text(strip=True) or None
 
     return price, currency
 

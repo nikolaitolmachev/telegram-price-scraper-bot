@@ -13,7 +13,6 @@ from app.models import ProductInput
 from app.scraping.models import PriceResult
 from app.scraping.scraper import scrape_product
 
-
 MAX_CONCURRENCY = 4
 
 
@@ -101,8 +100,6 @@ class PriceScraper:
                 result = await self.scrape(product)
                 return product, result
 
-        results = await asyncio.gather(
-            *(scrape_one(product) for product in products)
-        )
+        results = await asyncio.gather(*(scrape_one(product) for product in products))
 
         return list(results)
