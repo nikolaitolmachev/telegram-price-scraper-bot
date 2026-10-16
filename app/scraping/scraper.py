@@ -16,11 +16,12 @@ async def scrape_product(page: Page, product: ProductInput) -> PriceResult:
     Navigation failures and blocking responses are reported as statuses
     rather than raised. HTTP 401, 403, 429 and 503 yield BLOCKED, other
     4xx/5xx responses yield ERROR, and navigation timeouts yield TIMEOUT.
+    Navigation waits for DOMContentLoaded with a 30-second timeout.
+    Unexpected errors from subsequent price extraction propagate.
 
     Args:
         page: Page used to load the product URL.
-        product: Product providing the URL and the optional fallback
-            selector.
+        product: Product providing the URL and optional fallback selector.
 
     Returns:
         The scrape outcome for the product.
@@ -63,17 +64,17 @@ async def scrape_product(page: Page, product: ProductInput) -> PriceResult:
 async def extract_price_from_page(page: Page, selector: str | None = None) -> PriceResult:
     """Extract a price from a loaded page using a fixed source priority.
 
-    Sources are tried in order: JSON-LD, then Microdata, then the optional
-    selector. The selector is skipped when structured data provides a
-    price.
+    Try JSON-LD, then Microdata, then the optional selector. Skip the
+    selector when structured data provides a price. Selector results
+    contain only an amount and source, without a currency.
 
     Args:
-        page: Page whose HTML content is inspected.
+        page: Page whose current HTML content is inspected.
         selector: Optional CSS or XPath fallback selector.
 
     Returns:
-        A successful result carrying the price and its source, or a
-        NOT_FOUND result when no source yields a valid price.
+        A successful result carrying the price and source, or NOT_FOUND
+        when no source yields a valid price.
     """
     html = await page.content()
 
@@ -111,10 +112,11 @@ async def extract_price_from_page(page: Page, selector: str | None = None) -> Pr
 
 
 async def _extract_price_by_selector(page: Page, selector: str) -> Decimal | None:
-    """Return the price matched by the first element for the selector.
+    """Return the price from the first matching element's inner text.
 
-    A missing element or unparseable text is treated as no price rather
-    than as an error.
+    Use the page's default locator timeout. Return None when reading the
+    element fails or its text is not a valid price. Currency is not
+    extracted, even when the text includes a currency marker.
     """
     normalized_selector = _normalize_selector(selector)
 
@@ -129,10 +131,10 @@ async def _extract_price_by_selector(page: Page, selector: str) -> Decimal | Non
 
 
 def _normalize_selector(selector: str) -> str:
-    """Return a locator string, adding an xpath= prefix when needed.
+    """Trim a selector and add an xpath= prefix when needed.
 
-    Selectors that already carry an explicit css= or xpath= prefix are
-    returned unchanged.
+    Preserve explicit css= and xpath= prefixes. Treat selectors beginning
+    with / or ( as XPath, and leave other selectors without a prefix.
     """
     selector = selector.strip()
 

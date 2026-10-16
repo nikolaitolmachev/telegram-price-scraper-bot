@@ -20,6 +20,7 @@ def make_page(
     *,
     status: int = 200,
 ) -> MagicMock:
+    """Create a mocked page with configurable HTML and navigation HTTP status."""
     page = MagicMock()
     page.goto = AsyncMock()
     page.goto.return_value.status = status
@@ -30,6 +31,7 @@ def make_page(
 
 @pytest.fixture
 def product() -> ProductInput:
+    """Provide a product input for isolated page navigation tests."""
     return ProductInput(
         title="Test Product",
         url="https://example.com/product",
@@ -37,6 +39,7 @@ def product() -> ProductInput:
 
 
 async def test_json_ld_takes_priority_over_microdata() -> None:
+    """Prefer a JSON-LD price when Microdata also provides a price."""
     html = """
     <script type="application/ld+json">
     {
@@ -56,6 +59,7 @@ async def test_json_ld_takes_priority_over_microdata() -> None:
 
 
 async def test_microdata_used_when_json_ld_is_missing() -> None:
+    """Use the Microdata price and currency when JSON-LD is absent."""
     html = """
     <meta itemprop="price" content="200">
     <meta itemprop="priceCurrency" content="RUB">
@@ -70,6 +74,7 @@ async def test_microdata_used_when_json_ld_is_missing() -> None:
 
 
 async def test_selector_used_as_fallback() -> None:
+    """Read a selector price when structured data provides none."""
     page = make_page("<div class='price'>300 ₽</div>")
 
     locator = MagicMock()
@@ -85,6 +90,7 @@ async def test_selector_used_as_fallback() -> None:
 
 
 async def test_selector_not_used_when_json_ld_exists() -> None:
+    """Skip selector lookup after a valid JSON-LD price is found."""
     html = """
     <script type="application/ld+json">
     {"@type": "Product", "offers": {"price": "150"}}
@@ -103,6 +109,7 @@ async def test_selector_not_used_when_json_ld_exists() -> None:
 
 
 async def test_price_not_found() -> None:
+    """Return NOT_FOUND when the page contains no usable price."""
     result = await extract_price_from_page(
         make_page("<html></html>")
     )
@@ -112,6 +119,7 @@ async def test_price_not_found() -> None:
 
 
 async def test_selector_failure_returns_not_found() -> None:
+    """Return NOT_FOUND when reading the fallback element fails."""
     page = make_page("<html></html>")
 
     locator = MagicMock()
@@ -133,11 +141,13 @@ async def test_selector_failure_returns_not_found() -> None:
     ],
 )
 def test_normalize_selector(selector: str, expected: str) -> None:
+    """Preserve CSS selectors and normalize supported XPath selectors."""
     assert _normalize_selector(selector) == expected
 
 
 @pytest.mark.parametrize("status", [401, 403, 429, 503])
 async def test_blocked_http_status(product: ProductInput, status: int) -> None:
+    """Report blocking HTTP responses without attempting price extraction."""
     page = make_page(status=status)
 
     result = await scrape_product(page, product)
@@ -148,6 +158,7 @@ async def test_blocked_http_status(product: ProductInput, status: int) -> None:
 
 
 async def test_http_error(product: ProductInput) -> None:
+    """Report an HTTP 404 response as an error result."""
     page = make_page(status=404)
 
     result = await scrape_product(page, product)
@@ -157,6 +168,7 @@ async def test_http_error(product: ProductInput) -> None:
 
 
 async def test_navigation_timeout(product: ProductInput) -> None:
+    """Convert a navigation timeout into a TIMEOUT result."""
     page = make_page()
     page.goto.side_effect = PlaywrightTimeoutError("Navigation timed out")
 
@@ -167,6 +179,7 @@ async def test_navigation_timeout(product: ProductInput) -> None:
 
 
 async def test_navigation_error(product: ProductInput) -> None:
+    """Convert an unexpected navigation exception into an ERROR result."""
     page = make_page()
     page.goto.side_effect = RuntimeError("Connection failed")
 

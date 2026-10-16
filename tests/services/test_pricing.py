@@ -8,6 +8,7 @@ from app.services.pricing import build_price_summaries
 
 
 def test_build_price_summaries() -> None:
+    """Calculate source count, average, minimum and maximum for one title."""
     product_1 = ProductInput(
         title="Test Product",
         url="https://example.com/1",

@@ -73,6 +73,7 @@ def test_extract_json_ld_price(
     expected_price: Decimal,
     expected_currency: str,
 ) -> None:
+    """Read prices and currencies from supported JSON-LD Product structures."""
     assert extract_json_ld_price(html) == (
         expected_price,
         expected_currency,
@@ -80,6 +81,7 @@ def test_extract_json_ld_price(
 
 
 def test_extract_json_ld_skips_invalid_json() -> None:
+    """Skip malformed JSON and continue to a later valid Product script."""
     html = '''
     <script type="application/ld+json">
     {invalid json}
@@ -100,6 +102,7 @@ def test_extract_json_ld_skips_invalid_json() -> None:
 
 
 def test_extract_json_ld_without_product() -> None:
+    """Return no price when JSON-LD contains no Product node."""
     html = '''
     <script type="application/ld+json">
     {
@@ -113,6 +116,7 @@ def test_extract_json_ld_without_product() -> None:
 
 
 def test_extract_json_ld_with_invalid_price() -> None:
+    """Return no price when a Product offer contains an invalid amount."""
     html = '''
     <script type="application/ld+json">
     {
@@ -129,6 +133,7 @@ def test_extract_json_ld_with_invalid_price() -> None:
 
 
 def test_extract_microdata_from_content() -> None:
+    """Read Microdata price and currency from content attributes."""
     html = '''
     <div>
         <meta itemprop="price" content="32840">
@@ -140,6 +145,7 @@ def test_extract_microdata_from_content() -> None:
 
 
 def test_extract_microdata_from_text() -> None:
+    """Read Microdata price and currency from element text."""
     html = '''
     <div>
         <span itemprop="price">34 599 ₽</span>
@@ -151,6 +157,7 @@ def test_extract_microdata_from_text() -> None:
 
 
 def test_extract_microdata_without_currency() -> None:
+    """Preserve a valid price when no currency is present."""
     html = '''
     <span itemprop="price" content="1020"></span>
     '''
@@ -159,6 +166,7 @@ def test_extract_microdata_without_currency() -> None:
 
 
 def test_extract_microdata_without_price() -> None:
+    """Return no price or currency when the price item is absent."""
     html = '''
     <meta itemprop="priceCurrency" content="RUB">
     '''
@@ -167,6 +175,7 @@ def test_extract_microdata_without_price() -> None:
 
 
 def test_extract_microdata_with_invalid_price() -> None:
+    """Reject a Microdata price that cannot be parsed."""
     html = '''
     <meta itemprop="price" content="Price unavailable">
     <meta itemprop="priceCurrency" content="RUB">

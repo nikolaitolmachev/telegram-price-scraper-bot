@@ -1,41 +1,65 @@
-"""Normalization of human-readable price strings into decimals."""
+"""Validation and normalization of single positive prices into decimals."""
 
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
+
+
+CURRENCY_PATTERN = r"(?:₽|\$|€|£|RUB|USD|EUR|GBP|BYN|руб\.?|р\.?)"
+NUMBER_PATTERN = (
+    r"(?:"
+    r"[0-9]{1,3}(?: [0-9]{3})+(?:[.,][0-9]{1,2})?"
+    r"|[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?"
+    r"|[0-9]{1,3}(?:\.[0-9]{3})+(?:,[0-9]{1,2})?"
+    r"|[0-9]+(?:[.,][0-9]{1,2})?"
+    r")"
+)
+PRICE_PATTERN = re.compile(
+    rf"(?P<prefix>{CURRENCY_PATTERN})? *"
+    rf"(?P<number>{NUMBER_PATTERN})"
+    rf" *(?P<suffix>{CURRENCY_PATTERN})?",
+    re.IGNORECASE,
+)
 
 
 def parse_price(value: str) -> Decimal | None:
-    """Parse a human-readable price string into a Decimal.
+    """Parse a single positive price into a Decimal.
 
-    Currency symbols and whitespace are stripped, and common decimal and
-    thousands separators are normalized.
+    Accept at most one currency marker, before or after the number:
+    ₽, $, €, £, RUB, USD, EUR, GBP, BYN, руб or р (with an optional period
+    for the Russian abbreviations). Currency labels are case-insensitive.
+    Return only the amount; the marker does not affect its value.
+
+    Thousands must be grouped in threes using a consistent separator:
+    spaces (including nonbreaking spaces), commas or dots. Decimal fractions
+    may contain one or two digits. A comma or dot followed by three digits
+    is accepted only as part of valid thousands grouping.
+
+    Args:
+        value: A price string, optionally surrounded by whitespace.
 
     Returns:
-        The parsed price, or None when the input is empty, invalid or not
-        greater than zero.
+        The parsed price, or None for malformed numbers, nonpositive
+        values, ranges, approximate prices or text containing multiple prices.
     """
-    if not value:
+    normalized = value.replace("\xa0", " ").replace("\u202f", " ").strip()
+    match = PRICE_PATTERN.fullmatch(normalized)
+
+    if match is None or (match["prefix"] and match["suffix"]):
         return None
 
-    cleaned = re.sub(r"[^\d,.\s]", "", value).strip()
+    number = match["number"].replace(" ", "")
 
-    if not cleaned:
-        return None
+    if "," in number and "." in number:
+        decimal_separator = "," if number.rfind(",") > number.rfind(".") else "."
+        thousands_separator = "." if decimal_separator == "," else ","
+        number = number.replace(thousands_separator, "").replace(decimal_separator, ".")
+    elif "," in number or "." in number:
+        separator = "," if "," in number else "."
+        if len(number.rsplit(separator, 1)[1]) == 3:
+            number = number.replace(separator, "")
+        else:
+            number = number.replace(separator, ".")
 
-    cleaned = cleaned.replace("\xa0", " ").replace(" ", "")
-
-    if "," in cleaned and "." in cleaned:
-        cleaned = cleaned.replace(".", "").replace(",", ".")
-    elif "," in cleaned:
-        cleaned = cleaned.replace(",", ".")
-    elif "." in cleaned:
-        parts = cleaned.split(".")
-        if len(parts) == 2 and len(parts[1]) == 3:
-            cleaned = "".join(parts)
-
-    try:
-        price = Decimal(cleaned)
-    except InvalidOperation:
-        return None
+    price = Decimal(number)
 
     return price if price > 0 else None

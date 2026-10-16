@@ -27,8 +27,10 @@ class PriceSource(StrEnum):
 class PriceResult:
     """Outcome of scraping one product.
 
-    Populated fields depend on status: successful results carry a price
-    and a source, while failures typically carry an error instead.
+    Successful results carry a price and its source. Currency may be absent,
+    particularly when a selector provides the price. Navigation failures may
+    carry an error; a NOT_FOUND result normally has no price or error text.
+    The dataclass stores these fields without enforcing status-dependent rules.
     """
 
     status: ScrapeStatus

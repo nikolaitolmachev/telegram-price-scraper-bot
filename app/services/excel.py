@@ -13,21 +13,23 @@ MAX_PRODUCTS = 400
 
 
 def load_products(path: str | Path) -> list[ProductInput]:
-    """Load product rows from an Excel workbook.
+    """Load and validate product rows from the first Excel worksheet.
 
-    The workbook must contain title, url and selector columns. Rows
-    without a title or a URL are skipped, and a blank selector cell is
-    stored as None.
+    The worksheet must contain title, url and selector columns with these
+    exact names. Skip rows without a title or URL, trim surrounding whitespace
+    and store a blank selector as None. Enforce MAX_PRODUCTS on the remaining
+    valid rows after reading the worksheet. URL syntax is not validated here.
+    Workbook reading errors from pandas propagate to the caller.
 
     Args:
         path: Path to the .xlsx file.
 
     Returns:
-        The parsed products in file order.
+        The valid product inputs in worksheet order.
 
     Raises:
         ValueError: If required columns are missing, no valid rows remain,
-            or the row count exceeds MAX_PRODUCTS.
+            or the number of valid product rows exceeds MAX_PRODUCTS.
     """
     df = pd.read_excel(path)
 

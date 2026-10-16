@@ -1,6 +1,7 @@
-"""Application configuration read from environment variables.
+"""Read application configuration from the environment and a local .env file.
 
-Importing this module raises RuntimeError when BOT_TOKEN is not set.
+Existing environment variables take precedence over values in .env.
+Importing this module raises RuntimeError when BOT_TOKEN is missing or empty.
 """
 
 import os

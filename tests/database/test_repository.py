@@ -19,6 +19,7 @@ from app.scraping.models import PriceResult, PriceSource, ScrapeStatus
 
 @pytest.fixture
 def connection(tmp_path):
+    """Provide an initialized temporary SQLite connection and close it afterward."""
     db_path = tmp_path / "test_prices.db"
     init_database(db_path)
 
@@ -32,6 +33,7 @@ def connection(tmp_path):
 
 @pytest.fixture
 def sample_results():
+    """Provide successful and blocked results for persistence tests."""
     return [
         (
             ProductInput(
@@ -59,6 +61,7 @@ def sample_results():
 
 
 def test_create_scrape_run(connection) -> None:
+    """Store a new running scrape run with its owner and start timestamp."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
 
     row = connection.execute(
@@ -74,6 +77,7 @@ def test_create_scrape_run(connection) -> None:
 
 
 def test_save_price_results(connection, sample_results) -> None:
+    """Store successful prices and unsuccessful results with their metadata."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
 
     save_price_results(connection, run_id, sample_results)
@@ -99,6 +103,7 @@ def test_save_price_results(connection, sample_results) -> None:
 
 
 def test_finish_scrape_run(connection) -> None:
+    """Mark a run completed and record its completion timestamp."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
 
     finish_scrape_run(connection, run_id)
@@ -113,6 +118,7 @@ def test_finish_scrape_run(connection) -> None:
 
 
 def test_finish_scrape_run_as_failed(connection) -> None:
+    """Allow a run to finish with a failed status."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
 
     finish_scrape_run(connection, run_id, status="failed")
@@ -126,6 +132,7 @@ def test_finish_scrape_run_as_failed(connection) -> None:
 
 
 def test_finish_scrape_run_rejects_invalid_status(connection) -> None:
+    """Reject unsupported final run statuses."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
 
     with pytest.raises(ValueError, match="Invalid scrape run status"):
@@ -133,6 +140,7 @@ def test_finish_scrape_run_rejects_invalid_status(connection) -> None:
 
 
 def test_get_user_runs_returns_only_own_runs(connection) -> None:
+    """Return only the requested user's runs in newest-first order."""
     first_run = create_scrape_run(connection, telegram_user_id=123)
     second_run = create_scrape_run(connection, telegram_user_id=123)
     create_scrape_run(connection, telegram_user_id=999)
@@ -143,6 +151,7 @@ def test_get_user_runs_returns_only_own_runs(connection) -> None:
 
 
 def test_get_user_runs_respects_limit(connection) -> None:
+    """Limit the number of returned runs while preserving newest-first order."""
     for _ in range(5):
         create_scrape_run(connection, telegram_user_id=123)
 
@@ -153,6 +162,7 @@ def test_get_user_runs_respects_limit(connection) -> None:
 
 
 def test_get_run_results(connection, sample_results) -> None:
+    """Read the owner's stored results with decimal amounts preserved as text."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
     save_price_results(connection, run_id, sample_results)
 
@@ -165,6 +175,7 @@ def test_get_run_results(connection, sample_results) -> None:
 
 
 def test_get_run_results_rejects_other_user(connection, sample_results) -> None:
+    """Hide results when the requested user does not own the run."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
     save_price_results(connection, run_id, sample_results)
 
@@ -174,11 +185,13 @@ def test_get_run_results_rejects_other_user(connection, sample_results) -> None:
 
 
 def test_foreign_key_rejects_unknown_run(connection, sample_results) -> None:
+    """Reject results whose parent run does not exist."""
     with pytest.raises(sqlite3.IntegrityError):
         save_price_results(connection, run_id=999, results=sample_results)
 
 
 def test_deleting_run_cascades_to_results(connection, sample_results) -> None:
+    """Delete associated price results when their parent run is deleted."""
     run_id = create_scrape_run(connection, telegram_user_id=123)
     save_price_results(connection, run_id, sample_results)
 

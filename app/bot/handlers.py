@@ -1,5 +1,6 @@
-"""Telegram message handlers for the Excel upload and price comparison flow."""
+"""Telegram handlers for Excel uploads and price summaries in conventional units."""
 
+import asyncio
 import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -17,6 +18,8 @@ from app.services.pricing import build_price_summaries
 from app.services.excel import load_products
 from app.database.service import create_run, complete_run, fail_run
 
+
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 logger = logging.getLogger(__name__)
 
@@ -46,18 +49,28 @@ async def start_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(StateFilter(None, UploadExcel.waiting_for_file), F.text == "Upload Excel")
 async def upload_request_handler(message: Message, state: FSMContext) -> None:
-    """Switch to the waiting state and prompt the user for an Excel file."""
+    """Wait for an Excel file and explain its format and comparison limits."""
     await state.set_state(UploadExcel.waiting_for_file)
 
-    await message.answer("Send an .xlsx file with the columns: title, url, selector.")
+    await message.answer(
+        "Send an .xlsx file (up to 5 MB) with the columns: title, url, selector.\n\n"
+        "Prices are compared without taking currency into account and shown in "
+        "conventional units (у. е.). Use product URLs with prices in the same currency."
+    )
 
 
 @router.message(UploadExcel.waiting_for_file, F.document)
 async def excel_upload_handler(message: Message, state: FSMContext) -> None:
     """Process an uploaded Excel file and report collected prices.
 
-    Validate the workbook, scrape product prices, and persist the results.
-    Handle processing errors and restore the Telegram workflow state.
+    Reject unsupported files and files whose reported size exceeds
+    MAX_FILE_SIZE before downloading. Read the workbook on a worker thread,
+    scrape prices and persist the results. Log the run's start and completion.
+
+    Summarize successful prices by title in conventional units without
+    currency conversion or grouping by currency. Leave the user waiting for
+    another file after validation errors, and clear the processing state on
+    completion or failure. Remove the temporary workbook in either case.
     """
     document = message.document
 
@@ -69,16 +82,19 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
         await message.answer("Only .xlsx files are supported.")
         return
 
-    file = await message.bot.get_file(document.file_id)
+    if document.file_size is not None and document.file_size > MAX_FILE_SIZE:
+        await message.answer("The file is too large. Maximum allowed size is 5 MB.")
+        return
 
     with NamedTemporaryFile(suffix=".xlsx", delete=False) as temp_file:
         temp_path = Path(temp_file.name)
 
     try:
+        file = await message.bot.get_file(document.file_id)
         await message.bot.download_file(file.file_path, destination=temp_path)
 
         try:
-            products = load_products(temp_path)
+            products = await asyncio.to_thread(load_products, temp_path)
         except ValueError as exc:
             await message.answer(f"Invalid Excel file: {exc}")
             return
@@ -96,6 +112,7 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
         )
 
         run_id = await create_run(telegram_user.id)
+        logger.info("Run %s started: %s products", run_id, len(products))
 
         try:
             async with PriceScraper(headless=True) as scraper:
@@ -107,10 +124,7 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
             try:
                 await fail_run(run_id)
             except Exception:  # noqa
-                logger.exception(
-                    "Failed to mark scrape run %s as failed",
-                    run_id,
-                )
+                logger.exception("Failed to mark scrape run %s as failed", run_id)
             raise
 
         summaries = build_price_summaries(results)
@@ -122,6 +136,7 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
         )
 
         failed = len(results) - successful
+        logger.info("Run %s completed: %s successful, %s failed", run_id, successful, failed)
 
         await message.answer(
             f"Price collection finished.\n"
@@ -136,9 +151,9 @@ async def excel_upload_handler(message: Message, state: FSMContext) -> None:
             summary_lines.append(
                 f"{summary.title}\n"
                 f"Sources: {summary.sources_count}\n"
-                f"Average: {summary.average_price:.2f} RUB\n"
-                f"Min: {summary.min_price:.2f} RUB\n"
-                f"Max: {summary.max_price:.2f} RUB"
+                f"Average: {summary.average_price:.2f} у. е.\n"
+                f"Min: {summary.min_price:.2f} у. е.\n"
+                f"Max: {summary.max_price:.2f} у. е."
             )
 
         if summary_lines:

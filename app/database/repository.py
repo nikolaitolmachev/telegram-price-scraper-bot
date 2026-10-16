@@ -46,7 +46,9 @@ def save_price_results(
 ) -> None:
     """Insert one row per scrape result for the given run.
 
-    The transaction is left open for the caller to commit.
+    Store decimal prices as text and include unsuccessful results with
+    their statuses and optional errors. Leave transaction control to the
+    caller; this function does not commit.
     """
     rows = [
         (
@@ -139,7 +141,7 @@ def get_run_results(
 ) -> list[sqlite3.Row]:
     """Return the price results of a run owned by the given user.
 
-    A run owned by another user yields no rows.
+    A missing run or a run owned by another user yields no rows.
 
     Returns:
         The run's price result rows in insertion order.

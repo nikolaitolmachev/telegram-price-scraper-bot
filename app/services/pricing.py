@@ -1,4 +1,4 @@
-"""Aggregation of scraped prices per product."""
+"""Aggregate scraped amounts by product title without accounting for currency."""
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -10,7 +10,10 @@ from app.scraping.models import PriceResult, ScrapeStatus
 
 @dataclass(slots=True, frozen=True)
 class PriceSummary:
-    """Aggregated price statistics for one product title."""
+    """Price statistics for one product title, without a currency designation.
+
+    sources_count counts contributing results, not distinct stores or URLs.
+    """
 
     title: str
     sources_count: int
@@ -22,14 +25,16 @@ class PriceSummary:
 def build_price_summaries(
     results: list[tuple[ProductInput, PriceResult]],
 ) -> list[PriceSummary]:
-    """Aggregate successful prices by product title.
+    """Aggregate successful prices by exact product title.
 
-    Only results with a SUCCESS status and a price contribute. Each
-    summary reports the number of contributing sources and the average,
-    minimum and maximum price.
+    Only results with a SUCCESS status and a non-None price contribute.
+    Count each contributing result, including repeated URLs, and calculate
+    the average, minimum and maximum amount. Currency is ignored: callers
+    must provide prices in the same currency for a meaningful comparison.
 
     Returns:
-        One summary per title that produced at least one price.
+        One summary per title with a contributing price, in the order
+        those titles first appear among contributing results.
     """
     grouped: dict[str, list[Decimal]] = defaultdict(list)
 

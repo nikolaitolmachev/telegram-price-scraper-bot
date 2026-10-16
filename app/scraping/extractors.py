@@ -12,14 +12,15 @@ from app.scraping.parser import parse_price
 def extract_microdata_price(
     html: str,
 ) -> tuple[Decimal | None, str | None]:
-    """Extract a price and currency from Microdata markup.
+    """Extract a price and optional currency from Microdata markup.
 
-    Reads the first price item, preferring its content attribute over its
-    text, and pairs it with the first currency item.
+    Read the first price item in the document, preferring its content
+    attribute over its text, and pair it with the first currency item.
+    The items are not restricted to the same Product or Offer container.
 
     Returns:
-        A (price, currency) pair, or (None, None) when no valid price is
-        present. The currency may be None on its own.
+        A (price, currency) pair, or (None, None) when the first price is
+        absent or invalid. Currency may be None even with a valid price.
     """
     soup = BeautifulSoup(html, "html.parser")
 
@@ -54,14 +55,14 @@ def extract_microdata_price(
 def extract_json_ld_price(
     html: str,
 ) -> tuple[Decimal | None, str | None]:
-    """Extract a price and currency from JSON-LD Product markup.
+    """Extract the first valid price from JSON-LD Product markup.
 
-    Each application/ld+json script is inspected in document order;
-    malformed scripts are skipped and the first price found is returned.
+    Inspect application/ld+json scripts in document order, skipping empty
+    scripts and invalid JSON. Search nested Product nodes for offer prices.
 
     Returns:
-        A (price, currency) pair, or (None, None) when no product price is
-        present.
+        A (price, currency) pair, or (None, None) when no valid product
+        price is found. Currency may be None even with a valid price.
     """
     soup = BeautifulSoup(html, "html.parser")
 
@@ -131,10 +132,11 @@ def _find_product_price(
 def _extract_offer_price(
     offers: Any,
 ) -> tuple[Decimal, str | None] | None:
-    """Read a price and currency from an offers value.
+    """Read the first valid price and optional currency from offers.
 
-    Accepts a single offer or a list of offers, using price and falling
-    back to lowPrice for aggregate offers.
+    Accept a single offer dictionary or a list. Use price when truthy,
+    otherwise lowPrice; a present but unparseable price does not trigger
+    a second attempt using lowPrice. Validate amounts with parse_price.
 
     Returns:
         A (price, currency) pair, or None when no valid price is found.

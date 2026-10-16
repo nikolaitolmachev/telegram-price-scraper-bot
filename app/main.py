@@ -1,6 +1,7 @@
-"""Bot entry point: build the dispatcher and start long polling."""
+"""Bot entry point: configure console logging and start long polling."""
 
 import asyncio
+import logging
 
 from aiogram import Bot, Dispatcher
 
@@ -9,7 +10,13 @@ from app.config import BOT_TOKEN
 
 
 async def main() -> None:
-    """Create the dispatcher, register handlers and start long polling."""
+    """Configure console logging, register handlers and start long polling."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     bot = Bot(token=BOT_TOKEN)
     dispatcher = Dispatcher()
 

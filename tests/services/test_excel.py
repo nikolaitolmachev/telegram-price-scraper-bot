@@ -8,6 +8,7 @@ from app.services.excel import load_products, MAX_PRODUCTS
 
 
 def test_load_products_from_valid_excel(tmp_path) -> None:
+    """Load product inputs in worksheet order and preserve an empty selector."""
     file_path = tmp_path / "products.xlsx"
 
     dataframe = pd.DataFrame(
@@ -41,6 +42,7 @@ def test_load_products_from_valid_excel(tmp_path) -> None:
 
 
 def test_load_products_with_missing_columns(tmp_path) -> None:
+    """Reject a worksheet missing the required selector column."""
     file_path = tmp_path / "missing_columns.xlsx"
 
     dataframe = pd.DataFrame(
@@ -58,6 +60,7 @@ def test_load_products_with_missing_columns(tmp_path) -> None:
 
 
 def test_load_products_with_empty_rows(tmp_path) -> None:
+    """Reject a worksheet with no valid product inputs."""
     file_path = tmp_path / "empty_rows.xlsx"
 
     dataframe = pd.DataFrame(
@@ -76,6 +79,7 @@ def test_load_products_with_empty_rows(tmp_path) -> None:
 
 
 def test_load_products_skips_invalid_rows(tmp_path) -> None:
+    """Skip rows missing a title or URL while keeping valid rows."""
     file_path = tmp_path / "invalid_rows.xlsx"
 
     dataframe = pd.DataFrame(
@@ -107,6 +111,7 @@ def test_load_products_skips_invalid_rows(tmp_path) -> None:
 
 
 def test_load_products_exceeds_limit(tmp_path) -> None:
+    """Reject a worksheet with more than MAX_PRODUCTS valid product rows."""
     file_path = tmp_path / "too_many_products.xlsx"
 
     dataframe = pd.DataFrame(

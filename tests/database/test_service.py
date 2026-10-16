@@ -13,12 +13,14 @@ from app.scraping.models import PriceResult, PriceSource, ScrapeStatus
 
 @pytest.fixture
 def test_db(tmp_path, monkeypatch):
+    """Redirect database service operations to an initialized temporary database."""
     db_path = tmp_path / "test_prices.db"
     init_database(db_path)
 
     original_get_connection = get_connection
 
     def test_connection():
+        """Open a connection to the test database instead of the project database."""
         return original_get_connection(db_path)
 
     monkeypatch.setattr(service, "get_connection", test_connection)
@@ -29,6 +31,7 @@ def test_db(tmp_path, monkeypatch):
 
 @pytest.fixture
 def sample_results():
+    """Provide one successful result for asynchronous persistence tests."""
     return [
         (
             ProductInput(
@@ -47,6 +50,7 @@ def sample_results():
 
 @pytest.mark.asyncio
 async def test_create_run(test_db) -> None:
+    """Create a persisted running scrape run through the asynchronous service."""
     run_id = await service.create_run(telegram_user_id=123)
 
     with get_connection(test_db) as connection:
@@ -62,6 +66,7 @@ async def test_create_run(test_db) -> None:
 
 @pytest.mark.asyncio
 async def test_complete_run(test_db, sample_results) -> None:
+    """Persist price results and mark the run completed with a timestamp."""
     run_id = await service.create_run(telegram_user_id=123)
 
     await service.complete_run(run_id, sample_results)
@@ -86,6 +91,7 @@ async def test_complete_run(test_db, sample_results) -> None:
 
 @pytest.mark.asyncio
 async def test_fail_run(test_db) -> None:
+    """Mark a run failed and record its completion timestamp."""
     run_id = await service.create_run(telegram_user_id=123)
 
     await service.fail_run(run_id)
@@ -102,6 +108,7 @@ async def test_fail_run(test_db) -> None:
 
 @pytest.mark.asyncio
 async def test_complete_run_rolls_back_on_error(test_db, sample_results) -> None:
+    """Roll back inserted results when updating the run status fails."""
     run_id = await service.create_run(telegram_user_id=123)
 
     with patch.object(

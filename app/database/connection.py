@@ -14,7 +14,11 @@ DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "prices.db"
 def get_connection(db_path: str | Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     """Open a SQLite connection with named rows and foreign keys enabled.
 
-    The parent directory of the database file is created when missing.
+    Create the parent directory when missing. The caller is responsible for
+    closing the connection; this function does not initialize the schema.
+
+    Args:
+        db_path: SQLite file path, defaulting to data/prices.db in the project.
 
     Returns:
         An open connection supporting row access by column name.
